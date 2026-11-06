@@ -767,7 +767,7 @@ document.addEventListener('click',function(ev){
       var data=JSON.stringify({app:'macro-log',v:1,exported:new Date().toISOString(),cfg:S.cfg,days:S.days});
       $('#bk').innerHTML='<div class="f" style="margin-top:8px"><label for="bk-text">Backup text</label><textarea id="bk-text" readonly>'+esc(data)+'</textarea></div><button class="btn primary" style="margin-top:8px;width:100%" data-a="docopy" data-for="bk-text">Copy backup</button>';break}
     case 'importview':
-      $('#bk').innerHTML='<div class="f" style="margin-top:8px"><label for="im-text">Paste backup text</label><textarea id="im-text" placeholder="Paste the text you copied earlier"></textarea></div><p class="note" id="im-msg" style="color:var(--bad)" hidden></p><button class="btn primary" style="margin-top:8px;width:100%" data-a="doimport">Restore (replaces current data)</button>';break;
+      $('#bk').innerHTML='<div class="f" style="margin-top:8px"><label for="im-text">Paste backup text</label><textarea id="im-text" placeholder="Paste backup text, or an add-items text from Claude"></textarea></div><p class="note" id="im-msg" style="color:var(--bad)" hidden></p><button class="btn primary" style="margin-top:8px;width:100%" data-a="doimport">Restore or add (a full backup replaces current data)</button>';break;
     case 'doimport':doImport();break;
     case 'erase1':$('#erase').innerHTML='<p class="note" style="color:var(--bad);margin:0 0 8px">This cannot be undone. Erase everything?</p><div class="btns"><button class="btn" data-a="erase0">Keep my data</button><button class="btn danger" data-a="erase2">Yes, erase</button></div>';break;
     case 'erase0':renderSettings();break;
@@ -778,6 +778,23 @@ function doImport(){
   var msg=$('#im-msg');
   try{
     var o=JSON.parse($('#im-text').value.trim());
+    if(o&&o.add&&typeof o.add==='object'){
+      var a=o.add,added=0,touched=[];
+      Object.keys(a.days||{}).forEach(function(date){
+        var list=a.days[date];if(!Array.isArray(list))return;
+        var d=getDay(date,true);
+        list.forEach(function(e){
+          if(!e||!e.id||!e.n||!isFinite(e.k))return;
+          if(d.entries.some(function(x){return x.id===e.id}))return;
+          d.entries.push(e);added++});
+        d.u=Date.now();touched.push(date)});
+      (a.foods||[]).forEach(function(f){
+        if(!f||!f.id||!f.n)return;
+        if(S.cfg.custom.some(function(x){return x.id===f.id}))return;
+        S.cfg.custom.push(f);S.cfg.u=Date.now();dirty.cfg=1});
+      touched.forEach(function(id){dirty[id]=1});
+      saveLocal();if(DB){status('saving');flush()}else status('local');
+      render();toast(added?added+' items added':'Nothing new to add');return}
     if(!o||typeof o.days!=='object'||o.days===null)throw new Error('bad');
     var oldIds=Object.keys(S.days);
     S.days=o.days;S.cfg=fixCfg(o.cfg);S.cfg.u=Date.now();
