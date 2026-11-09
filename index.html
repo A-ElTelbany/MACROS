@@ -791,10 +791,10 @@ function doImport(){
       (a.foods||[]).forEach(function(f){
         if(!f||!f.id||!f.n)return;
         if(S.cfg.custom.some(function(x){return x.id===f.id}))return;
-        S.cfg.custom.push(f);S.cfg.u=Date.now();dirty.cfg=1});
+        S.cfg.custom.push(f);S.cfg.u=Date.now();dirty.cfg=1;added++});
       touched.forEach(function(id){dirty[id]=1});
       saveLocal();if(DB){status('saving');flush()}else status('local');
-      render();toast(added?added+' items added':'Nothing new to add');return}
+      render();toast(added?added+(added===1?' item added':' items added'):'Nothing new to add');return}
     if(!o||typeof o.days!=='object'||o.days===null)throw new Error('bad');
     var oldIds=Object.keys(S.days);
     S.days=o.days;S.cfg=fixCfg(o.cfg);S.cfg.u=Date.now();
