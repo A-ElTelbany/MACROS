@@ -192,7 +192,10 @@ h2.vt{font-family:var(--font-d);font-size:28px;font-weight:600;letter-spacing:.0
 
 /* progress */
 .seg.segn{grid-template-columns:repeat(auto-fit,minmax(0,1fr))}
-.f input[type=date]{width:100%;min-width:0;height:46px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px;padding:0 12px}
+.f{grid-template-columns:minmax(0,1fr)}
+.f input[type=date]{-webkit-appearance:none;appearance:none;display:block;box-sizing:border-box;width:100%;max-width:100%;min-width:0;height:46px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font:inherit;font-size:16px;padding:0 12px;text-align:left}
+.f input[type=date]::-webkit-date-and-time-value{text-align:left;margin:0;min-height:1.2em}
+.f input[type=date]::-webkit-datetime-edit{padding:0}
 .pgc{padding:12px;margin-bottom:10px}
 .pgc h3{margin:0 0 6px;font-size:12px;letter-spacing:.07em;text-transform:uppercase;color:var(--mute);display:flex;justify-content:space-between;gap:8px}
 .pgc h3 b{color:var(--accent-fg);font-weight:600;letter-spacing:0;text-transform:none;text-align:right}
@@ -985,7 +988,7 @@ function weightCard(start,end){
 
 function dayTot(d){return sum(entriesOf(d))}
 function caloriesCard(start,end,range){
-  var t=todayS(),days=[],ok=0,cnt=0;
+  var t=todayS(),days=[],ok=0,cnt=0,sk=0,lo0=0,hi0=0;
   for(var i=0;i<range;i++){var d=addDays(start,i),es=entriesOf(d);if(es.length)days.push({i:i,d:d,t:sum(es),tg:S.cfg.targets[dayType(d)]})}
   if(!days.length)return '<section class="card pgc"><h3>Calories</h3>'+noData('Log some meals and your daily calories will appear here.')+'</section>';
   var mx=0;days.forEach(function(x){mx=Math.max(mx,x.t.k,x.tg.k[1])});mx*=1.08;
@@ -995,13 +998,15 @@ function caloriesCard(start,end,range){
     var cx=26+x.i*cw,bx=cx+(cw-bw)/2,k=x.t.k,tg=x.tg.k,col=k<tg[0]?'var(--warn)':k>tg[1]?'var(--bad)':'var(--ok)',isT=x.d===t;
     bars+='<rect x="'+cx.toFixed(1)+'" y="'+Y(tg[1]).toFixed(1)+'" width="'+cw.toFixed(1)+'" height="'+(Y(tg[0])-Y(tg[1])).toFixed(1)+'" fill="var(--ink)" opacity=".1"/>'+
       '<rect x="'+bx.toFixed(1)+'" y="'+Y(k).toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'+Math.max(1,92-Y(k)).toFixed(1)+'" rx="'+(bw>6?2:0)+'" fill="'+col+'"'+(isT?' opacity=".45"':'')+'/>';
-    if(!isT){cnt++;if(k>=tg[0]&&k<=tg[1])ok++}});
+    if(!isT){cnt++;sk+=k;lo0+=tg[0];hi0+=tg[1];if(k>=tg[0]&&k<=tg[1])ok++}});
   var labs='';
   if(range===7){for(var j=0;j<7;j++){labs+='<text x="'+(26+j*cw+cw/2).toFixed(1)+'" y="106" text-anchor="middle">'+WD[parseD(addDays(start,j)).getDay()]+'</text>'}}
   else{labs='<text x="26" y="106">'+sdate(start)+'</text><text x="324" y="106" text-anchor="end">'+sdate(end)+'</text>'}
   var axis='<text x="0" y="'+(Y(mx/1.08)+3)+'">'+fmt(mx/1.08)+'</text><text x="0" y="95">0</text>';
-  return '<section class="card pgc"><h3>Calories<b>'+(cnt?ok+' of '+cnt+' days in range':'today only so far')+'</b></h3>'+svgAttr(112,'Daily calories')+axis+bars+labs+'</svg>'+
-    '<p class="note" style="margin:2px 0 0">Grey band = your target range · green in range · orange under · red over · today is faded</p></section>'}
+  var avgK=cnt?sk/cnt:0,L=cnt?lo0/cnt:0,H=cnt?hi0/cnt:0,sc=Math.max(H*1.18,avgK*1.02,1),
+    avgBlock=cnt?'<p class="note" style="margin:0 0 8px">Target '+fmt(L)+'–'+fmt(H)+' kcal · '+ok+' of '+cnt+' days in range</p><div class="meter" style="margin-bottom:10px"><span class="band" style="left:'+(L/sc*100)+'%;width:'+((H-L)/sc*100)+'%"></span><span class="fill '+(avgK>=L&&avgK<=H?'in':avgK>H?'over':'')+'" style="width:'+Math.min(100,avgK/sc*100)+'%"></span></div>':'';
+  return '<section class="card pgc"><h3>Calories<b>'+(cnt?'avg '+fmt(avgK)+' kcal / day':'today only so far')+'</b></h3>'+avgBlock+svgAttr(112,'Daily calories')+axis+bars+labs+'</svg>'+
+    '<p class="note" style="margin:2px 0 0">Grey band = your target range · green in range · orange under · red over · today is faded and not counted in the average</p></section>'}
 function proteinCard(start,end){
   var t=todayS(),n=0,sumP=0,hit=0,lo=0,hi=0;
   for(var i=0;;i++){var d=addDays(start,i);if(d>end)break;if(d===t)continue;var es=entriesOf(d);if(!es.length)continue;var p=sum(es).p,tg=S.cfg.targets[dayType(d)].p;n++;sumP+=p;lo+=tg[0];hi+=tg[1];if(p>=tg[0])hit++}
